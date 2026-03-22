@@ -6,10 +6,15 @@ export default function QRScan({ setWhatsappReady }) {
   const [qr, setQR] = useState("");
   const [status, setStatus] = useState("Generating QR code...");
 
+  const REFRESH_INTERVAL =
+    parseInt(process.env.REACT_APP_QR_REFRESH_INTERVAL) || 2000;
+
   useEffect(() => {
     const fetchQR = async () => {
       try {
-        const res = await axios.get(`${QR_API}/qr`);
+        const res = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/whatsapp/qr`,
+        );
         if (res.data.qrDataUrl) {
           setQR(res.data.qrDataUrl);
           setStatus("📱 Scan this QR code on WhatsApp to login");
@@ -24,14 +29,13 @@ export default function QRScan({ setWhatsappReady }) {
           setWhatsappReady(false);
         }
       } catch (err) {
-        console.error("❌ Error fetching QR code:", err);
         setStatus("❌ Error fetching QR code");
         setWhatsappReady(false);
       }
     };
 
     fetchQR();
-    const interval = setInterval(fetchQR, 2000);
+    const interval = setInterval(fetchQR, REFRESH_INTERVAL);
     return () => clearInterval(interval);
   }, [setWhatsappReady]);
 
