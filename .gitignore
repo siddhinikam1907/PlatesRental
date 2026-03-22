@@ -1,0 +1,18 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+
+# WhatsApp session files (backend)
+Backend/.wwebjs_auth/
+
+# Build / cache files
+Frontend/build/
+Backend/dist/
+Backend/.cache/
+
+# IDE / OS files
+.vscode/
+.DS_Store
+Thumbs.db
