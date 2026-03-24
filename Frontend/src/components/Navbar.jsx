@@ -3,7 +3,6 @@ import { useSelector, useDispatch } from "react-redux";
 import { setAdmin, setAuthenticated } from "../redux/authSlice";
 import { useState } from "react";
 import axios from "axios";
-import { toast } from "sonner";
 import logo from "../assets/logo.jpg";
 import { ADMIN_API_END_POINT } from "../utils/constant.js";
 
@@ -32,6 +31,7 @@ export default function Navbar() {
   return (
     <nav className="bg-white shadow-md fixed w-full z-50">
       <div className="flex justify-between items-center px-6 py-4">
+        {/* Logo */}
         <div className="flex items-center gap-3">
           <img src={logo} alt="logo" width={40} />
           <h1 className="text-xl md:text-2xl font-bold text-indigo-600">
@@ -84,12 +84,46 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="flex flex-col gap-4 px-6 pb-4 md:hidden">
-          <Link to="/">Dashboard</Link>
-          <Link to="/customers">Customers</Link>
-          <Link to="/rentals">Rentals</Link>
+          <Link to="/" onClick={() => setMenuOpen(false)}>
+            Dashboard
+          </Link>
 
-          <Link to="/login">Login</Link>
-          <Link to="/signup">Signup</Link>
+          <Link to="/plates" onClick={() => setMenuOpen(false)}>
+            Plates Inventory
+          </Link>
+
+          <Link to="/customers" onClick={() => setMenuOpen(false)}>
+            Customers
+          </Link>
+
+          <Link to="/rentals" onClick={() => setMenuOpen(false)}>
+            Rentals
+          </Link>
+
+          <Link to="/messages" onClick={() => setMenuOpen(false)}>
+            Messages
+          </Link>
+
+          {!isAuthenticated ? (
+            <>
+              <Link to="/login" onClick={() => setMenuOpen(false)}>
+                Login
+              </Link>
+              <Link to="/signup" onClick={() => setMenuOpen(false)}>
+                Signup
+              </Link>
+            </>
+          ) : (
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                logoutHandler();
+              }}
+              className="bg-red-500 text-white px-4 py-1 rounded text-left"
+            >
+              Logout
+            </button>
+          )}
         </div>
       )}
     </nav>
