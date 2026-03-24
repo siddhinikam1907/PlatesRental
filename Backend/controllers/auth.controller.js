@@ -52,33 +52,30 @@ export const registerAdmin = async (req, res) => {
 };
 
 // LOGIN
+// LOGIN
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({
-        message: "All fields are required",
-        success: false,
-      });
+      return res
+        .status(400)
+        .json({ message: "All fields are required", success: false });
     }
 
-    let user = await Admin.findOne({ email: email.toLowerCase() });
+    const user = await Admin.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      return res.status(400).json({
-        message: "Invalid email or password",
-        success: false,
-      });
+      return res
+        .status(400)
+        .json({ message: "Invalid email or password", success: false });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
     if (!isPasswordValid) {
-      return res.status(400).json({
-        message: "Invalid email or password",
-        success: false,
-      });
+      return res
+        .status(400)
+        .json({ message: "Invalid email or password", success: false });
     }
 
     const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
@@ -96,8 +93,8 @@ export const login = async (req, res) => {
       .status(200)
       .cookie("token", token, {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax",
+        secure: true, // ✅ must be true on HTTPS
+        sameSite: "none", // ✅ allow cross-site requests
         maxAge: 24 * 60 * 60 * 1000,
       })
       .json({
@@ -107,10 +104,9 @@ export const login = async (req, res) => {
       });
   } catch (error) {
     console.log("Login error:", error);
-    return res.status(500).json({
-      message: "Internal server error",
-      success: false,
-    });
+    return res
+      .status(500)
+      .json({ message: "Internal server error", success: false });
   }
 };
 

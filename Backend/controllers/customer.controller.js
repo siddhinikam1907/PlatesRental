@@ -72,6 +72,7 @@ export const getCustomerById = async (req, res) => {
       return res.status(404).json({
         message: "Customer not found",
         success: false,
+        x,
       });
     }
 
