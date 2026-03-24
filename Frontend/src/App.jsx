@@ -1,22 +1,27 @@
+import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
-import Rentals from "./pages/Rentals";
-import Signup from "./pages/Signup";
-import ProtectedRoute from "./components/ProtectedRoute";
 import PlateStock from "./pages/PlateStock";
+import Rentals from "./pages/Rentals";
 import Messages from "./pages/Message.jsx";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+import { useAuth } from "./hooks/useAuth";
+
 function App() {
+  // ✅ Single source of truth for authentication
+  useAuth();
+
   return (
     <BrowserRouter>
       <Navbar />
 
-      <div
-        className="min-h-screen pt-24 px-4 md:px-10 
-      bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100"
-      >
+      <div className="min-h-screen pt-24 px-4 md:px-10 bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100">
         <Routes>
           {/* Protected Routes */}
           <Route
@@ -36,6 +41,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/plates"
             element={
@@ -44,6 +50,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/rentals"
             element={
@@ -52,6 +59,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/messages"
             element={
@@ -60,6 +68,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />

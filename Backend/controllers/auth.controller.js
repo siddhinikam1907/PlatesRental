@@ -1,15 +1,19 @@
 import Admin from "../models/admin.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+
+// REGISTER
 export const registerAdmin = async (req, res) => {
   try {
     const { fullname, email, phoneNumber, password } = req.body;
+
     if (!fullname || !email || !phoneNumber || !password) {
       return res.status(400).json({
         message: "All fields are required",
         success: false,
       });
     }
+
     const existingUser = await Admin.findOne({
       email: email.toLowerCase(),
     });
@@ -20,13 +24,16 @@ export const registerAdmin = async (req, res) => {
         success: false,
       });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
+
     const newUser = await Admin.create({
       fullname,
       email: email.toLowerCase(),
       phoneNumber,
       password: hashedPassword,
     });
+
     const userResponse = newUser.toObject();
     delete userResponse.password;
 
@@ -36,7 +43,7 @@ export const registerAdmin = async (req, res) => {
       user: userResponse,
     });
   } catch (error) {
-    console.log("Error in user registration:", error);
+    console.log("Error in registration:", error);
     return res.status(500).json({
       message: "Internal server error",
       success: false,
@@ -44,23 +51,29 @@ export const registerAdmin = async (req, res) => {
   }
 };
 
+// LOGIN
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
       return res.status(400).json({
         message: "All fields are required",
         success: false,
       });
     }
+
     let user = await Admin.findOne({ email: email.toLowerCase() });
+
     if (!user) {
       return res.status(400).json({
         message: "Invalid email or password",
         success: false,
       });
     }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
+
     if (!isPasswordValid) {
       return res.status(400).json({
         message: "Invalid email or password",
@@ -68,18 +81,17 @@ export const login = async (req, res) => {
       });
     }
 
-    const tokenData = {
-      userId: user._id,
-    };
-    const token = jwt.sign(tokenData, process.env.SECRET_KEY, {
+    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
       expiresIn: "1d",
     });
-    user = {
+
+    const userData = {
       _id: user._id,
       fullname: user.fullname,
       email: user.email,
       phoneNumber: user.phoneNumber,
     };
+
     return res
       .status(200)
       .cookie("token", token, {
@@ -90,25 +102,11 @@ export const login = async (req, res) => {
       })
       .json({
         message: `${user.fullname} logged in successfully`,
-        user,
+        user: userData,
         success: true,
       });
   } catch (error) {
-    console.log("Error in user logout:", error);
-    return res.status(500).json({
-      message: "Internal server error",
-      success: false,
-    });
-  }
-};
-export const logout = async (req, res) => {
-  try {
-    return res.status(200).cookie("token", "", { maxAge: 0 }).json({
-      message: "User logged out successfully",
-      success: true,
-    });
-  } catch (error) {
-    console.log("Error in user logout:", error);
+    console.log("Login error:", error);
     return res.status(500).json({
       message: "Internal server error",
       success: false,
@@ -116,6 +114,23 @@ export const logout = async (req, res) => {
   }
 };
 
+// LOGOUT
+export const logout = async (req, res) => {
+  try {
+    return res.status(200).cookie("token", "", { maxAge: 0 }).json({
+      message: "User logged out successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.log("Logout error:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+      success: false,
+    });
+  }
+};
+
+// PROFILE
 export const getAdminProfile = async (req, res) => {
   try {
     const admin = await Admin.findById(req.userId).select("-password");
@@ -132,7 +147,7 @@ export const getAdminProfile = async (req, res) => {
       success: true,
     });
   } catch (error) {
-    console.log("Error fetching admin profile:", error);
+    console.log("Profile error:", error);
     return res.status(500).json({
       message: "Internal server error",
       success: false,

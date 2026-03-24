@@ -11,53 +11,58 @@ import RentalRoutes from "./routes/rental.route.js";
 import PaymentRoutes from "./routes/payment.route.js";
 import messageRoutes from "./routes/message.route.js";
 import testRoutes from "./routes/test.route.js";
-import whatsappRoutes from "./routes/whatsapp.route.js";
 
 import cron from "node-cron";
 import { checkRentReminders } from "./services/reminder.service.js";
-import { initWhatsApp, isWhatsAppReady } from "./services/whatsapp.service.js";
 
 dotenv.config();
 
 const app = express();
 
-// ✅ INIT WHATSAPP
-initWhatsApp();
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://plates-rental-frontend.onrender.com",
+];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
 };
+
 app.use(cors(corsOptions));
 
 /* =========================
-   ✅ FIXED CRON (IMPORTANT)
+   CRON JOB
 ========================= */
-cron.schedule("30 10 * * *", async () => {
-  console.log("⏱ Running cron...");
+cron.schedule(
+  "30 10 * * *",
+  async () => {
+    console.log("⏱ Running cron at 10:30 AM IST...");
 
-  // 🚨 Check if WhatsApp is ready
-  if (!isWhatsAppReady()) {
-    console.log(
-      "⛔ WhatsApp not ready, skipping reminders. Will retry next cron.",
-    );
-    return;
-  }
-
-  try {
-    await checkRentReminders();
-    console.log("✅ Reminders sent successfully.");
-  } catch (err) {
-    console.log("❌ Error in sending reminders:", err.message);
-  }
-});
+    try {
+      await checkRentReminders();
+      console.log("✅ Reminders sent successfully.");
+    } catch (err) {
+      console.log("❌ Error in sending reminders:", err.message);
+    }
+  },
+  {
+    timezone: "Asia/Kolkata",
+  },
+);
 
 /* =========================
-   ✅ ROUTES
+   ROUTES
 ========================= */
 app.use("/api/v1/admin", AdminRoutes);
 app.use("/api/v1/customer", CustomerRoutes);
@@ -66,26 +71,21 @@ app.use("/api/v1/rental", RentalRoutes);
 app.use("/api/v1/payment", PaymentRoutes);
 app.use("/api/v1/message", messageRoutes);
 app.use("/api/v1/test", testRoutes);
-app.use("/api/v1/whatsapp", whatsappRoutes);
 
 /* =========================
-   ✅ TEST ROUTE
+   TEST ROUTE
 ========================= */
 app.get("/test-sms", async (req, res) => {
-  if (!isWhatsAppReady()) {
-    return res.send("❌ WhatsApp not ready");
-  }
-
   await checkRentReminders();
   res.send("✅ Reminder triggered");
 });
 
 /* =========================
-   ✅ START SERVER
+   START SERVER
 ========================= */
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 
 app.listen(PORT, () => {
   connectDB();
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

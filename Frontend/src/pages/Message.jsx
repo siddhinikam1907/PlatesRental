@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { MESSAGE_API } from "../utils/constant";
 import { toast } from "sonner";
@@ -15,29 +15,26 @@ export default function Messages() {
       const res = await axios.get(`${MESSAGE_API}/getAll`, {
         withCredentials: true,
       });
-      setMessages(res.data.messages);
+
+      setMessages(res.data.messages || []);
     } catch (err) {
       console.log(err);
       toast.error("Failed to fetch messages");
     }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`Copied: ${text}`);
-  };
-
-  // ✅ Delete message
   const deleteMessage = async (id) => {
     if (!window.confirm("Are you sure you want to delete this message?"))
       return;
+
     try {
       const res = await axios.delete(`${MESSAGE_API}/delete/${id}`, {
         withCredentials: true,
       });
+
       if (res.data.success) {
         toast.success("Message deleted");
-        fetchMessages(); // Refresh the list
+        fetchMessages();
       } else {
         toast.error("Failed to delete message");
       }
@@ -49,15 +46,16 @@ export default function Messages() {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">📩 Admin WhatsApp Alerts</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        📩 Admin Alerts (Email Reports)
+      </h1>
 
       <div className="bg-white shadow rounded-xl overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-100">
             <tr>
-              <th className="p-3">Customer</th>
-              <th className="p-3">Phone</th>
               <th className="p-3">Type</th>
+              <th className="p-3">Method</th>
               <th className="p-3">Status</th>
               <th className="p-3">Date</th>
               <th className="p-3">Action</th>
@@ -65,63 +63,109 @@ export default function Messages() {
           </thead>
 
           <tbody>
-            {messages.map((msg) => (
-              <tr
-                key={msg._id}
-                className="border-b hover:bg-gray-50 transition"
-              >
-                <td className="p-3 font-medium">
-                  {msg.customer?.customerName || "Deleted"}
-                </td>
+            {messages.map((msg) => {
+              let parsedData = [];
 
-                <td className="p-3 flex items-center gap-2">
-                  <a
-                    href={`tel:+91${msg.phoneNumber}`}
-                    className="text-blue-600 underline hover:text-blue-800"
-                  >
-                    {msg.phoneNumber}
-                  </a>
-                  <button
-                    onClick={() => copyToClipboard(msg.phoneNumber)}
-                    className="px-2 py-1 bg-gray-200 rounded text-sm hover:bg-gray-300"
-                  >
-                    Copy
-                  </button>
-                </td>
+              if (msg.type === "summary" && msg.message) {
+                try {
+                  parsedData = JSON.parse(msg.message);
+                } catch {
+                  parsedData = [];
+                }
+              }
 
-                <td className="p-3">
-                  <span
-                    className={`px-2 py-1 rounded text-white text-sm ${
-                      msg.type === "overdue" ? "bg-red-500" : "bg-blue-500"
-                    }`}
-                  >
-                    {msg.type}
-                  </span>
-                </td>
+              return (
+                <React.Fragment key={msg._id}>
+                  {/* MAIN ROW */}
+                  <tr className="border-b hover:bg-gray-50">
+                    <td className="p-3">
+                      <span
+                        className={`px-2 py-1 rounded text-white text-sm ${
+                          msg.type === "summary"
+                            ? "bg-purple-500"
+                            : msg.type === "overdue"
+                            ? "bg-red-500"
+                            : "bg-blue-500"
+                        }`}
+                      >
+                        {msg.type}
+                      </span>
+                    </td>
 
-                <td className="p-3">
-                  <span
-                    className={`px-2 py-1 rounded text-white text-sm ${
-                      msg.status === "sent" ? "bg-green-500" : "bg-red-500"
-                    }`}
-                  >
-                    {msg.status}
-                  </span>
-                </td>
+                    <td className="p-3">
+                      <span
+                        className={`px-2 py-1 rounded text-white text-sm ${
+                          msg.method === "Email"
+                            ? "bg-indigo-500"
+                            : "bg-green-500"
+                        }`}
+                      >
+                        {msg.method}
+                      </span>
+                    </td>
 
-                <td className="p-3">{new Date(msg.sentAt).toLocaleString()}</td>
+                    <td className="p-3">
+                      <span
+                        className={`px-2 py-1 rounded text-white text-sm ${
+                          msg.status === "sent" ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      >
+                        {msg.status}
+                      </span>
+                    </td>
 
-                {/* ✅ DELETE BUTTON */}
-                <td className="p-3">
-                  <button
-                    onClick={() => deleteMessage(msg._id)}
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition text-sm"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+                    <td className="p-3">
+                      {msg.createdAt
+                        ? new Date(msg.createdAt).toLocaleString()
+                        : "No Date"}
+                    </td>
+
+                    <td className="p-3">
+                      <button
+                        onClick={() => deleteMessage(msg._id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+
+                  {/* SUMMARY TABLE */}
+                  {msg.type === "summary" && parsedData.length > 0 && (
+                    <tr>
+                      <td colSpan="5" className="p-4 bg-gray-50">
+                        <table className="w-full border text-sm">
+                          <thead className="bg-gray-200">
+                            <tr>
+                              <th className="p-2">Customer</th>
+                              <th className="p-2">Phone</th>
+                              <th className="p-2">Plates</th>
+                              <th className="p-2">Days Used</th>
+                              <th className="p-2">Status</th>
+                              <th className="p-2">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {parsedData.map((item, index) => (
+                              <tr key={index} className="border-b">
+                                <td className="p-2">{item.name}</td>
+                                <td className="p-2">{item.phone}</td>
+                                <td className="p-2">{item.plates}</td>
+                                <td className="p-2">{item.daysUsed}</td>
+                                <td className="p-2">{item.status}</td>
+                                <td className="p-2 font-semibold text-green-600">
+                                  ₹{item.amount}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
 

@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import QRScan from "../components/QRScan";
 import {
   CUSTOMER_API,
   RENTAL_API,
   PLATE_API,
   MESSAGE_API,
 } from "../utils/constant";
+import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 
 export default function Dashboard() {
   const [customers, setCustomers] = useState(0);
@@ -16,13 +17,13 @@ export default function Dashboard() {
   const [liveMoney, setLiveMoney] = useState(0);
   const [failedMessages, setFailedMessages] = useState(0);
   const [sentMessages, setSentMessages] = useState(0);
-
-  // WhatsApp QR scan state
-  const [whatsappReady, setWhatsappReady] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
+
         const [customerRes, rentalRes, plateRes, messageRes] =
           await Promise.all([
             axios.get(`${CUSTOMER_API}/getAll`, { withCredentials: true }),
@@ -38,11 +39,9 @@ export default function Dashboard() {
         setActiveRentals(active.length);
         setPlates(plateRes.data.plates);
 
-        // ✅ Total Rented Plates
         const totalRented = active.reduce((sum, r) => sum + r.platesGiven, 0);
         setRentedPlates(totalRented);
 
-        // ✅ Live Rental Amount
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -57,39 +56,46 @@ export default function Dashboard() {
 
           return sum + rental.platesGiven * rental.rentPerPlate * daysUsed;
         }, 0);
+
         setLiveMoney(totalMoney);
 
-        // ✅ Message stats
         const messages = messageRes.data.messages;
         setFailedMessages(messages.filter((m) => m.status === "failed").length);
         setSentMessages(messages.filter((m) => m.status === "sent").length);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 60000); // refresh every minute
+    const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, []);
 
+  // 🔄 Loader UI
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="animate-spin w-10 h-10 text-indigo-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-10 p-6">
-      <h1 className="text-3xl font-bold text-gray-800">
-        Rental Business Dashboard
-      </h1>
-
-      {/* QR Scan */}
-      {!whatsappReady && (
-        <div className="bg-gray-100 p-4 rounded-xl shadow-md">
-          <h2 className="font-semibold mb-2">Scan QR to initialize WhatsApp</h2>
-          <QRScan setWhatsappReady={setWhatsappReady} />
-        </div>
-      )}
+      <motion.h1
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-4xl font-bold text-gray-800"
+      >
+        📊 Rental Business Dashboard
+      </motion.h1>
 
       {/* STATS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-        <Card title="Total Customers" value={customers} color="bg-blue-500" />
+        <Card title="Customers" value={customers} color="bg-blue-500" />
         <Card
           title="Active Rentals"
           value={activeRentals}
@@ -105,43 +111,67 @@ export default function Dashboard() {
           value={rentedPlates}
           color="bg-orange-500"
         />
-        <div className="bg-emerald-600 text-white p-6 rounded-xl shadow-lg">
-          <h3 className="text-lg">Live Rental Amount</h3>
-          <p className="text-3xl font-bold mt-2">₹{liveMoney}</p>
-        </div>
+        <Card title="Sent Alerts" value={sentMessages} color="bg-indigo-500" />
+        <Card title="Failed Alerts" value={failedMessages} color="bg-red-500" />
       </div>
 
+      {/* LIVE MONEY CARD */}
+      <motion.div
+        whileHover={{ scale: 1.05 }}
+        className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-6 rounded-2xl shadow-xl"
+      >
+        <h3 className="text-lg">💰 Live Rental Amount</h3>
+        <p className="text-4xl font-bold mt-2">₹{liveMoney}</p>
+      </motion.div>
+
       {/* PLATE OVERVIEW */}
-      <div className="bg-white p-6 rounded-xl shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Plate Inventory</h2>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="bg-white p-6 rounded-xl shadow-md"
+      >
+        <h2 className="text-xl font-semibold mb-4">📦 Plate Inventory</h2>
+
         <div className="grid grid-cols-3 gap-6 text-center">
-          <div>
-            <p className="text-gray-500">Total Plates</p>
-            <p className="text-2xl font-bold">{plates.totalPlates ?? 0}</p>
-          </div>
-          <div>
-            <p className="text-gray-500">Available Plates</p>
-            <p className="text-2xl font-bold text-green-600">
-              {plates.availablePlates ?? 0}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-500">Rent Per Plate</p>
-            <p className="text-2xl font-bold text-blue-600">
-              ₹{plates.rentPerPlate ?? 0}
-            </p>
-          </div>
+          <InventoryCard label="Total Plates" value={plates.totalPlates ?? 0} />
+          <InventoryCard
+            label="Available"
+            value={plates.availablePlates ?? 0}
+            color="text-green-600"
+          />
+          <InventoryCard
+            label="Rent / Plate"
+            value={`₹${plates.rentPerPlate ?? 0}`}
+            color="text-blue-600"
+          />
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
 
+/* CARD COMPONENT */
 function Card({ title, value, color }) {
   return (
-    <div className={`${color} text-white p-6 rounded-xl shadow-lg`}>
-      <h3 className="text-lg">{title}</h3>
+    <motion.div
+      whileHover={{ scale: 1.07 }}
+      className={`${color} text-white p-6 rounded-2xl shadow-lg cursor-pointer`}
+    >
+      <h3 className="text-sm opacity-80">{title}</h3>
       <p className="text-4xl font-bold mt-2">{value}</p>
-    </div>
+    </motion.div>
+  );
+}
+
+/* INVENTORY CARD */
+function InventoryCard({ label, value, color = "text-gray-800" }) {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.05 }}
+      className="bg-gray-50 p-4 rounded-xl shadow-sm"
+    >
+      <p className="text-gray-500">{label}</p>
+      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+    </motion.div>
   );
 }

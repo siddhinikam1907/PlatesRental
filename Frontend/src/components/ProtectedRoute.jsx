@@ -1,14 +1,17 @@
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 
-const ProtectedRoute = ({ children }) => {
-  const { admin } = useSelector((store) => store.auth);
+export default function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useSelector((state) => state.auth);
 
-  if (!admin) {
-    return <Navigate to="/login" />;
+  // ✅ Wait until auth check completes
+  if (loading) {
+    return <div className="text-center mt-10">Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
   return children;
-};
-
-export default ProtectedRoute;
+}

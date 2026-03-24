@@ -5,7 +5,7 @@ const authSlice = createSlice({
 
   initialState: {
     admin: null,
-    loading: false,
+    loading: true, // ✅ important
     isAuthenticated: false,
   },
 
@@ -20,6 +20,7 @@ const authSlice = createSlice({
 
     setAuthenticated: (state, action) => {
       state.isAuthenticated = action.payload;
+      state.loading = false; // ✅ stop loading after auth check
     },
   },
 });
