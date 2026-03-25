@@ -1,43 +1,55 @@
 import Plate from "../models/plate.model.js";
 
+/* ---------------- GET ---------------- */
 export const getPlateStock = async (req, res) => {
   try {
-    const plates = await Plate.findOne(); // only one record
+    const plates = await Plate.findOne();
+
     if (!plates) {
       return res.status(404).json({
         message: "Plate inventory not found",
         success: false,
       });
     }
+
     res.status(200).json({
       success: true,
       plates,
     });
   } catch (error) {
     console.log("Error fetching plates:", error);
-    res.status(500).json({ message: "Internal server error", success: false });
+    res.status(500).json({
+      message: "Internal server error",
+      success: false,
+    });
   }
 };
 
+/* ---------------- CREATE ---------------- */
 export const setPlateStock = async (req, res) => {
   try {
-    const { totalPlates, rentPerPlate } = req.body;
-    if (totalPlates == null || rentPerPlate == null) {
+    let { totalPlates, rentPerPlate } = req.body;
+
+    totalPlates = Number(totalPlates);
+    rentPerPlate = Number(rentPerPlate);
+
+    if (isNaN(totalPlates) || isNaN(rentPerPlate)) {
       return res.status(400).json({
-        message: "totalPlates and rentPerPlate are required",
+        message: "Invalid numeric values",
         success: false,
       });
     }
 
-    let plates = await Plate.findOne();
-    if (plates) {
+    const existing = await Plate.findOne();
+
+    if (existing) {
       return res.status(400).json({
-        message: "Plate inventory already exists, use update instead",
+        message: "Plate inventory already exists",
         success: false,
       });
     }
 
-    plates = await Plate.create({
+    const plates = await Plate.create({
       totalPlates,
       availablePlates: totalPlates,
       rentedPlates: 0,
@@ -51,15 +63,20 @@ export const setPlateStock = async (req, res) => {
     });
   } catch (error) {
     console.log("Error setting plate stock:", error);
-    res.status(500).json({ message: "Internal server error", success: false });
+    res.status(500).json({
+      message: "Internal server error",
+      success: false,
+    });
   }
 };
 
+/* ---------------- UPDATE ---------------- */
 export const updatePlateStock = async (req, res) => {
   try {
-    const { totalPlates, rentPerPlate } = req.body;
+    let { addPlates, rentPerPlate } = req.body;
 
     const plates = await Plate.findOne();
+
     if (!plates) {
       return res.status(404).json({
         message: "Plate inventory not found",
@@ -67,23 +84,32 @@ export const updatePlateStock = async (req, res) => {
       });
     }
 
-    // Only update totals if provided
-    if (totalPlates != null) {
-      // if new total is less than already rented, block update
-      if (totalPlates < plates.rentedPlates) {
+    /* -------- ADD PLATES (INCREMENT LOGIC) -------- */
+    if (addPlates !== undefined) {
+      addPlates = Number(addPlates);
+
+      if (isNaN(addPlates) || addPlates < 0) {
         return res.status(400).json({
-          message: "Total plates cannot be less than already rented plates",
+          message: "Invalid addPlates value",
           success: false,
         });
       }
 
-      plates.totalPlates = totalPlates;
-
-      // update available based on true rented count
-      plates.availablePlates = totalPlates - plates.rentedPlates;
+      plates.totalPlates += addPlates;
+      plates.availablePlates += addPlates;
     }
 
-    if (rentPerPlate != null) {
+    /* -------- UPDATE RENT -------- */
+    if (rentPerPlate !== undefined) {
+      rentPerPlate = Number(rentPerPlate);
+
+      if (isNaN(rentPerPlate)) {
+        return res.status(400).json({
+          message: "Invalid rentPerPlate",
+          success: false,
+        });
+      }
+
       plates.rentPerPlate = rentPerPlate;
     }
 
@@ -96,6 +122,9 @@ export const updatePlateStock = async (req, res) => {
     });
   } catch (error) {
     console.log("Error updating plate stock:", error);
-    res.status(500).json({ message: "Internal server error", success: false });
+    res.status(500).json({
+      message: "Internal server error",
+      success: false,
+    });
   }
 };

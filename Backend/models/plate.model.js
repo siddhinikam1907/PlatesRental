@@ -14,10 +14,16 @@ const plateSchema = new mongoose.Schema(
       default: 0,
     },
 
+    rentedPlates: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
     rentPerPlate: {
       type: Number,
       required: true,
-      default: 2, // default rate per plate
+      default: 2,
     },
   },
   { timestamps: true },

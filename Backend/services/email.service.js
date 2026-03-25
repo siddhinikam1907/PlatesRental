@@ -9,17 +9,22 @@ export const sendEmailReport = async (alertList) => {
 
     const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
+    if (!ADMIN_EMAIL) {
+      console.log("❌ ADMIN_EMAIL is not defined");
+      return;
+    }
+
     let htmlContent = `
-    <h2>🚧 Plate Rental Daily Report</h2>
-    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
-      <tr>
-        <th>Customer</th>
-        <th>Phone</th>
-        <th>Plates</th>
-        <th>Days Used</th>
-        <th>Status</th>
-        <th>Amount</th>
-      </tr>
+      <h2>🚧 Plate Rental Daily Report</h2>
+      <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+        <tr>
+          <th>Customer</th>
+          <th>Phone</th>
+          <th>Plates</th>
+          <th>Days Used</th>
+          <th>Status</th>
+          <th>Amount</th>
+        </tr>
     `;
 
     alertList.forEach((c) => {
@@ -37,11 +42,17 @@ export const sendEmailReport = async (alertList) => {
 
     htmlContent += `</table>`;
 
+    // ✅ Correct SMTP transporter (fix for ENETUNREACH)
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // true only for 465
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        pass: process.env.EMAIL_PASS, // App Password
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
 

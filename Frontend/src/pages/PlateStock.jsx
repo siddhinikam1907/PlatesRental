@@ -26,6 +26,7 @@ export default function PlateStock() {
     fetchPlateStock();
   }, []);
 
+  /* ---------------- CREATE ---------------- */
   const createStock = async (e) => {
     e.preventDefault();
 
@@ -33,8 +34,8 @@ export default function PlateStock() {
       const res = await axios.post(
         `${PLATE_API}/set-stock`,
         {
-          totalPlates,
-          rentPerPlate,
+          totalPlates: Number(totalPlates),
+          rentPerPlate: Number(rentPerPlate),
         },
         { withCredentials: true },
       );
@@ -44,10 +45,12 @@ export default function PlateStock() {
         fetchPlateStock();
       }
     } catch (error) {
-      toast.error(error.response?.data?.message);
+      console.log(error.response?.data);
+      toast.error(error.response?.data?.message || "Error creating stock");
     }
   };
 
+  /* ---------------- UPDATE (FIXED) ---------------- */
   const updateStock = async (e) => {
     e.preventDefault();
 
@@ -55,8 +58,8 @@ export default function PlateStock() {
       const res = await axios.put(
         `${PLATE_API}/update`,
         {
-          totalPlates,
-          rentPerPlate,
+          addPlates: totalPlates ? Number(totalPlates) : undefined, // ✅ FIX
+          rentPerPlate: rentPerPlate ? Number(rentPerPlate) : undefined,
         },
         { withCredentials: true },
       );
@@ -66,7 +69,8 @@ export default function PlateStock() {
         fetchPlateStock();
       }
     } catch (error) {
-      toast.error("Error updating stock");
+      console.log(error.response?.data);
+      toast.error(error.response?.data?.message || "Error updating stock");
     }
   };
 
@@ -76,23 +80,23 @@ export default function PlateStock() {
         Plate Inventory Management
       </h1>
 
-      {/* Stock Display */}
+      {/* DISPLAY */}
       {plates && (
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white p-6 rounded-xl shadow">
-            <p className="text-gray-500">Total Plates</p>
+            <p>Total Plates</p>
             <h2 className="text-2xl font-bold">{plates.totalPlates}</h2>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow">
-            <p className="text-gray-500">Available Plates</p>
+            <p>Available Plates</p>
             <h2 className="text-2xl font-bold text-green-600">
               {plates.availablePlates}
             </h2>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow">
-            <p className="text-gray-500">Rent Per Plate</p>
+            <p>Rent Per Plate</p>
             <h2 className="text-2xl font-bold text-blue-600">
               ₹{plates.rentPerPlate}
             </h2>
@@ -100,7 +104,7 @@ export default function PlateStock() {
         </div>
       )}
 
-      {/* Form */}
+      {/* FORM */}
       <div className="bg-white p-6 rounded-xl shadow-md">
         <h2 className="text-xl font-semibold mb-4">
           {plates ? "Update Plate Stock" : "Set Plate Stock"}
@@ -112,7 +116,7 @@ export default function PlateStock() {
         >
           <input
             type="number"
-            placeholder="Total Plates"
+            placeholder="Add Plates (Increment)"
             value={totalPlates}
             onChange={(e) => setTotalPlates(e.target.value)}
             className="border p-2 rounded-lg"

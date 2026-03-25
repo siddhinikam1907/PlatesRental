@@ -1,3 +1,6 @@
+import dns from "dns";
+
+dns.setDefaultResultOrder("ipv4first");
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -45,7 +48,7 @@ app.use(cors(corsOptions));
    CRON JOB
 ========================= */
 cron.schedule(
-  "30 10 * * *",
+  "1 17 * * *",
   async () => {
     console.log("⏱ Running cron at 10:30 AM IST...");
 

@@ -3,12 +3,13 @@ import Customer from "../models/customer.model.js";
 import Plate from "../models/plate.model.js";
 import { calculateRent } from "../utils/rentCalculator.js";
 
-// 1️⃣ Create rental
+/* =========================
+   CREATE RENTAL
+========================= */
 export const createRental = async (req, res) => {
   try {
     let { customerId, platesGiven, expectedDays } = req.body;
 
-    // Ensure numbers
     platesGiven = Number(platesGiven);
     expectedDays = Number(expectedDays);
 
@@ -21,19 +22,29 @@ export const createRental = async (req, res) => {
 
     const customer = await Customer.findById(customerId);
     if (!customer) {
-      return res
-        .status(404)
-        .json({ message: "Customer not found", success: false });
+      return res.status(404).json({
+        message: "Customer not found",
+        success: false,
+      });
     }
 
     const plates = await Plate.findOne();
-    if (!plates || plates.availablePlates < platesGiven) {
-      return res
-        .status(400)
-        .json({ message: "Not enough plates available", success: false });
+
+    if (!plates) {
+      return res.status(500).json({
+        message: "Plate inventory not initialized",
+        success: false,
+      });
     }
 
-    // IST date start
+    if (plates.availablePlates < platesGiven) {
+      return res.status(400).json({
+        message: "Not enough plates available",
+        success: false,
+      });
+    }
+
+    // IST date
     const rentDate = new Date(
       new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
     );
@@ -52,20 +63,31 @@ export const createRental = async (req, res) => {
       status: "active",
     });
 
-    // Decrease stock
+    // ✅ Stock update
     plates.availablePlates -= platesGiven;
+    plates.rentedPlates += platesGiven;
+
+    if (plates.availablePlates < 0) plates.availablePlates = 0;
+
     await plates.save();
 
-    res
-      .status(201)
-      .json({ message: "Rental created successfully", success: true, rental });
+    res.status(201).json({
+      message: "Rental created successfully",
+      success: true,
+      rental,
+    });
   } catch (error) {
     console.log("Error creating rental:", error);
-    res.status(500).json({ message: "Internal server error", success: false });
+    res.status(500).json({
+      message: "Internal server error",
+      success: false,
+    });
   }
 };
 
-// 2️⃣ Get all rentals
+/* =========================
+   GET ALL RENTALS
+========================= */
 export const getAllRentals = async (req, res) => {
   try {
     const rentals = await Rental.find()
@@ -86,7 +108,9 @@ export const getAllRentals = async (req, res) => {
         1,
         Math.floor((today - rentDate) / (1000 * 60 * 60 * 24)) + 1,
       );
+
       const currentAmount = rental.platesGiven * rental.rentPerPlate * daysUsed;
+
       const daysRemaining = Math.ceil(
         (expectedReturnDate - today) / (1000 * 60 * 60 * 24),
       );
@@ -106,40 +130,70 @@ export const getAllRentals = async (req, res) => {
       };
     });
 
-    res.status(200).json({ success: true, rentals: updatedRentals });
+    res.status(200).json({
+      success: true,
+      rentals: updatedRentals,
+    });
   } catch (error) {
     console.log("Error fetching rentals:", error);
-    res.status(500).json({ message: "Internal server error", success: false });
+    res.status(500).json({
+      message: "Internal server error",
+      success: false,
+    });
   }
 };
 
-// 3️⃣ Get rentals of a customer
+/* =========================
+   GET CUSTOMER RENTALS
+========================= */
 export const getCustomerRentals = async (req, res) => {
   try {
     const rentals = await Rental.find({
       customer: req.params.customerId,
     }).populate("customer");
-    res.status(200).json({ success: true, rentals });
+
+    res.status(200).json({
+      success: true,
+      rentals,
+    });
   } catch (error) {
     console.log("Error fetching customer rentals:", error);
-    res.status(500).json({ message: "Internal server error", success: false });
+    res.status(500).json({
+      message: "Internal server error",
+      success: false,
+    });
   }
 };
 
-// 4️⃣ Return plates
+/* =========================
+   RETURN PLATES
+========================= */
 export const returnPlates = async (req, res) => {
   try {
-    const rental = await Rental.findById(req.params.rentalId).populate(
-      "customer",
-    );
-    if (!rental)
-      return res
-        .status(404)
-        .json({ message: "Rental not found", success: false });
-    if (rental.status === "returned")
-      return res
-        .status(400)
-        .json({ message: "Plates already returned", success: false });
+    const rental = await Rental.findById(req.params.rentalId);
+
+    if (!rental) {
+      return res.status(404).json({
+        message: "Rental not found",
+        success: false,
+      });
+    }
+
+    if (rental.status === "returned") {
+      return res.status(400).json({
+        message: "Plates already returned",
+        success: false,
+      });
+    }
+
+    const plates = await Plate.findOne();
+
+    if (!plates) {
+      return res.status(500).json({
+        message: "Plate inventory not initialized",
+        success: false,
+      });
+    }
 
     const today = new Date();
     const rentDate = new Date(rental.rentDate);
@@ -148,19 +202,26 @@ export const returnPlates = async (req, res) => {
       1,
       Math.floor((today - rentDate) / (1000 * 60 * 60 * 24)) + 1,
     );
+
     const totalAmount = calculateRent(
       rental.platesGiven,
       rental.rentPerPlate,
       totalDays,
     );
 
+    // Update rental
     rental.status = "returned";
     rental.returnDate = today;
     rental.totalAmount = totalAmount;
+
     await rental.save();
 
-    const plates = await Plate.findOne();
+    // ✅ Stock update
     plates.availablePlates += rental.platesGiven;
+    plates.rentedPlates -= rental.platesGiven;
+
+    if (plates.rentedPlates < 0) plates.rentedPlates = 0;
+
     await plates.save();
 
     res.status(200).json({
@@ -171,28 +232,56 @@ export const returnPlates = async (req, res) => {
     });
   } catch (error) {
     console.log("Error returning plates:", error);
-    res.status(500).json({ message: "Internal server error", success: false });
+    res.status(500).json({
+      message: "Internal server error",
+      success: false,
+    });
   }
 };
+
+/* =========================
+   DELETE RENTAL
+========================= */
 export const deleteRental = async (req, res) => {
   try {
     const rental = await Rental.findById(req.params.rentalId);
-    if (!rental)
-      return res
-        .status(404)
-        .json({ success: false, message: "Rental not found" });
 
-    // Return plates to stock before deleting
+    if (!rental) {
+      return res.status(404).json({
+        success: false,
+        message: "Rental not found",
+      });
+    }
+
     const plates = await Plate.findOne();
-    plates.availablePlates += rental.platesGiven;
-    await plates.save();
 
+    if (!plates) {
+      return res.status(500).json({
+        success: false,
+        message: "Plate inventory not initialized",
+      });
+    }
+
+    // ✅ Restore stock only if rental is active
+    if (rental.status === "active") {
+      plates.availablePlates += rental.platesGiven;
+      plates.rentedPlates -= rental.platesGiven;
+
+      if (plates.rentedPlates < 0) plates.rentedPlates = 0;
+    }
+
+    await plates.save();
     await rental.deleteOne();
 
-    res
-      .status(200)
-      .json({ success: true, message: "Rental deleted successfully" });
+    res.status(200).json({
+      success: true,
+      message: "Rental deleted successfully",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error" });
+    console.log("Error deleting rental:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };

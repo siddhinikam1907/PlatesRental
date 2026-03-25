@@ -25,10 +25,13 @@ export default function RentalTable({ rentals, refreshRentals }) {
 
   // ✅ Delete rental
   const deleteRental = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this rental?")) return;
+
     try {
       const res = await axios.delete(`${RENTAL_API}/delete/${id}`, {
         withCredentials: true,
       });
+
       if (res.data.success) {
         toast.success("Rental deleted successfully");
         refreshRentals();
