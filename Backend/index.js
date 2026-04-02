@@ -44,13 +44,16 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+app.get("/", (req, res) => {
+  res.status(200).send("Backend is alive 🚀");
+});
 /* =========================
    CRON JOB
 ========================= */
 cron.schedule(
-  "5 22 * * *",
+  "36 22 * * *",
   async () => {
-    console.log("⏱ Running cron at 10:30 AM IST...");
+    console.log("⏱ Running cron at 10:36 AM IST...");
 
     try {
       await checkRentReminders();
