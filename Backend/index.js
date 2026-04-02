@@ -51,7 +51,7 @@ app.get("/", (req, res) => {
    CRON JOB
 ========================= */
 cron.schedule(
-  "36 22 * * *",
+  "50 22 * * *",
   async () => {
     console.log("⏱ Running cron at 10:36 AM IST...");
 
@@ -91,7 +91,18 @@ app.get("/test-sms", async (req, res) => {
 ========================= */
 const PORT = process.env.PORT || 8000;
 
-app.listen(PORT, () => {
-  connectDB();
-  console.log(`Server running on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+    console.log("✅ MongoDB connected");
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();
