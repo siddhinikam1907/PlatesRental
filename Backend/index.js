@@ -61,7 +61,7 @@ app.get("/", (req, res) => {
    CRON JOB
 ========================= */
 cron.schedule(
-  "55 23 * * *",
+  "59 23 * * *",
   async () => {
     console.log("⏱ Running cron TEST at 11:55 PM IST...");
 
