@@ -19,6 +19,16 @@ import cron from "node-cron";
 import { checkRentReminders } from "./services/reminder.service.js";
 
 dotenv.config();
+/* =========================
+   GLOBAL ERROR HANDLERS (CRITICAL)
+========================= */
+process.on("uncaughtException", (err) => {
+  console.error("💥 Uncaught Exception:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("💥 Unhandled Rejection:", err);
+});
 
 const app = express();
 
@@ -51,15 +61,15 @@ app.get("/", (req, res) => {
    CRON JOB
 ========================= */
 cron.schedule(
-  "5 23 * * *",
+  "55 23 * * *",
   async () => {
-    console.log("⏱ Running cron at 10:36 AM IST...");
+    console.log("⏱ Running cron TEST at 11:55 PM IST...");
 
     try {
       await checkRentReminders();
       console.log("✅ Reminders sent successfully.");
     } catch (err) {
-      console.log("❌ Error in sending reminders:", err.message);
+      console.error("❌ Cron failed:", err);
     }
   },
   {
