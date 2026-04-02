@@ -48,7 +48,7 @@ app.use(cors(corsOptions));
    CRON JOB
 ========================= */
 cron.schedule(
-  "1 17 * * *",
+  "54 21 * * *",
   async () => {
     console.log("⏱ Running cron at 10:30 AM IST...");
 
