@@ -1,6 +1,6 @@
 import dns from "dns";
-
 dns.setDefaultResultOrder("ipv4first");
+
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -15,71 +15,83 @@ import PaymentRoutes from "./routes/payment.route.js";
 import messageRoutes from "./routes/message.route.js";
 import testRoutes from "./routes/test.route.js";
 
-import cron from "node-cron";
 import { checkRentReminders } from "./services/reminder.service.js";
 
 dotenv.config();
-/* =========================
-   GLOBAL ERROR HANDLERS (CRITICAL)
-========================= */
+
+/* ======================================================
+   GLOBAL CRASH HANDLERS
+====================================================== */
 process.on("uncaughtException", (err) => {
-  console.error("💥 Uncaught Exception:", err);
+  console.error("💥 UNCAUGHT EXCEPTION:", err);
 });
 
 process.on("unhandledRejection", (err) => {
-  console.error("💥 Unhandled Rejection:", err);
+  console.error("💥 UNHANDLED REJECTION:", err);
 });
 
 const app = express();
 
+/* ======================================================
+   MIDDLEWARE
+====================================================== */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+/* ======================================================
+   CORS FIX
+====================================================== */
 const allowedOrigins = [
   "http://localhost:5173",
   "https://plates-rental-frontend.onrender.com",
 ];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
-
-app.get("/", (req, res) => {
-  res.status(200).send("Backend is alive 🚀");
-});
-/* =========================
-   CRON JOB
-========================= */
-cron.schedule(
-  "30 10 * * *",
-  async () => {
-    console.log("⏱ Running cron at 10:30 AM IST...");
-
-    try {
-      await checkRentReminders();
-      console.log("✅ Reminders sent successfully.");
-    } catch (err) {
-      console.error("❌ Cron failed:", err);
-    }
-  },
-  {
-    timezone: "Asia/Kolkata",
-  },
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(null, true);
+    },
+    credentials: true,
+  }),
 );
 
-/* =========================
+/* ======================================================
+   HEALTH CHECK ROUTES
+====================================================== */
+app.get("/", (req, res) => {
+  res.status(200).send("Server Alive ✅");
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime(),
+    time: new Date(),
+  });
+});
+
+/* ======================================================
+   🚀 REMINDER TRIGGER API (CALLED BY cron-job.org DAILY)
+====================================================== */
+app.get("/api/v1/reminders/run", async (req, res) => {
+  console.log("⏱ External cron triggered reminders...");
+
+  try {
+    await checkRentReminders();
+    console.log("✅ Reminders executed successfully.");
+    res.status(200).send("Reminder job executed ✅");
+  } catch (err) {
+    console.error("❌ Reminder API failed:", err);
+    res.status(500).send("Reminder job failed ❌");
+  }
+});
+
+/* ======================================================
    ROUTES
-========================= */
+====================================================== */
 app.use("/api/v1/admin", AdminRoutes);
 app.use("/api/v1/customer", CustomerRoutes);
 app.use("/api/v1/plates", PlateRoutes);
@@ -88,25 +100,18 @@ app.use("/api/v1/payment", PaymentRoutes);
 app.use("/api/v1/message", messageRoutes);
 app.use("/api/v1/test", testRoutes);
 
-/* =========================
-   TEST ROUTE
-========================= */
-app.get("/test-sms", async (req, res) => {
-  await checkRentReminders();
-  res.send("✅ Reminder triggered");
-});
-
-/* =========================
+/* ======================================================
    START SERVER
-========================= */
+====================================================== */
 const PORT = process.env.PORT || 8000;
 
 const startServer = async () => {
   try {
+    console.log("⏳ Connecting MongoDB...");
     await connectDB();
     console.log("✅ MongoDB connected");
 
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
   } catch (error) {
