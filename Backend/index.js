@@ -76,17 +76,21 @@ app.get("/health", (req, res) => {
 /* ======================================================
    🚀 REMINDER TRIGGER API (CALLED BY cron-job.org DAILY)
 ====================================================== */
-app.get("/api/v1/reminders/run", async (req, res) => {
-  console.log("⏱ External cron triggered reminders...");
+app.get("/api/v1/reminders/run", (req, res) => {
+  console.log("⏱ Cron triggered reminders...");
 
-  try {
-    await checkRentReminders();
-    console.log("✅ Reminders executed successfully.");
-    res.status(200).send("Reminder job executed ✅");
-  } catch (err) {
-    console.error("❌ Reminder API failed:", err);
-    res.status(500).send("Reminder job failed ❌");
-  }
+  // ✅ 1. Respond immediately to cron (VERY IMPORTANT)
+  res.status(200).send("OK");
+
+  // ✅ 2. Run heavy job in background
+  setImmediate(async () => {
+    try {
+      await checkRentReminders();
+      console.log("✅ Reminder job completed");
+    } catch (err) {
+      console.error("❌ Reminder job failed:", err);
+    }
+  });
 });
 
 /* ======================================================
