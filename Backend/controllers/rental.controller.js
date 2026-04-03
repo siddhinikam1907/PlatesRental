@@ -109,8 +109,11 @@ export const getAllRentals = async (req, res) => {
         Math.floor((today - rentDate) / (1000 * 60 * 60 * 24)) + 1,
       );
 
-      const currentAmount = rental.platesGiven * rental.rentPerPlate * daysUsed;
-
+      const currentAmount = calculateRent(
+        rental.platesGiven,
+        rental.rentPerPlate,
+        daysUsed,
+      );
       const daysRemaining = Math.ceil(
         (expectedReturnDate - today) / (1000 * 60 * 60 * 24),
       );
