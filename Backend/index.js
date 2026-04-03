@@ -1,4 +1,6 @@
 import dns from "dns";
+
+/* 🚨 FORCE IPV4 FOR GMAIL SMTP (RENDER FIX) */
 dns.setDefaultResultOrder("ipv4first");
 
 import express from "express";

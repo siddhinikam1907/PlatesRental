@@ -46,13 +46,11 @@ export const sendEmailReport = async (alertList) => {
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 587,
-      secure: false, // true only for 465
+      secure: false,
+      family: 4, // ⭐⭐⭐ FORCE IPV4 (THIS FIXES RENDER) ⭐⭐⭐
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // App Password
-      },
-      tls: {
-        rejectUnauthorized: false,
+        pass: process.env.EMAIL_PASS,
       },
     });
 
