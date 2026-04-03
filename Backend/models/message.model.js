@@ -5,18 +5,18 @@ const messageSchema = new mongoose.Schema(
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",
-      required: false, // ✅ not required for email summary
+      required: false,
     },
 
     rental: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Rental",
-      required: false, // ✅ not required
+      required: false,
     },
 
     phoneNumber: {
       type: String,
-      required: false, // ✅ not needed for email
+      required: false,
     },
 
     message: {
@@ -26,19 +26,19 @@ const messageSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ["reminder", "overdue", "summary"], // ✅ added summary
+      enum: ["reminder", "overdue", "summary", "daily-reminder-job"],
       default: "reminder",
     },
 
     method: {
       type: String,
-      enum: ["WhatsApp", "Email"], // ✅ added Email
-      default: "WhatsApp",
+      enum: ["WhatsApp", "Email"],
+      default: "Email",
     },
 
     status: {
       type: String,
-      enum: ["sent", "failed"],
+      enum: ["sent", "failed", "success"],
       default: "failed",
     },
   },
