@@ -78,19 +78,34 @@ app.get("/health", (req, res) => {
 /* ======================================================
    🚀 REMINDER TRIGGER API (CALLED BY cron-job.org DAILY)
 ====================================================== */
+let reminderRunning = false;
+let lastRun = 0;
+
 app.get("/api/v1/reminders/run", (req, res) => {
+  const now = Date.now();
+
   console.log("⏱ Cron triggered reminders...");
 
-  // ✅ 1. Respond immediately to cron (VERY IMPORTANT)
+  // Ignore duplicate calls within 1 minute
+  if (reminderRunning || now - lastRun < 60 * 1000) {
+    console.log("⏭ Duplicate cron request ignored");
+    return res.status(200).send("Already running");
+  }
+
+  reminderRunning = true;
+  lastRun = now;
+
+  // respond instantly so cron-job.org does not think it failed
   res.status(200).send("OK");
 
-  // ✅ 2. Run heavy job in background
   setImmediate(async () => {
     try {
       await checkRentReminders();
       console.log("✅ Reminder job completed");
     } catch (err) {
       console.error("❌ Reminder job failed:", err);
+    } finally {
+      reminderRunning = false;
     }
   });
 });
