@@ -1,4 +1,6 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendEmailReport = async (alertList) => {
   try {
@@ -8,11 +10,6 @@ export const sendEmailReport = async (alertList) => {
     }
 
     const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-
-    if (!ADMIN_EMAIL) {
-      console.log("❌ ADMIN_EMAIL is not defined");
-      return;
-    }
 
     let htmlContent = `
       <h2>🚧 Plate Rental Daily Report</h2>
@@ -42,26 +39,20 @@ export const sendEmailReport = async (alertList) => {
 
     htmlContent += `</table>`;
 
-    // ✅ Correct SMTP transporter (fix for ENETUNREACH)
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      family: 4, // ⭐⭐⭐ FORCE IPV4 (THIS FIXES RENDER) ⭐⭐⭐
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    // ⭐ SEND EMAIL USING RESEND
+    const { data, error } = await resend.emails.send({
+      from: "Plate Rental <onboarding@resend.dev>",
       to: ADMIN_EMAIL,
       subject: "🚨 Plate Rental Daily Alert",
       html: htmlContent,
     });
 
-    console.log("✅ Email sent successfully");
+    if (error) {
+      console.error("❌ Resend error:", error);
+      return;
+    }
+
+    console.log("✅ Email sent successfully via Resend");
   } catch (err) {
     console.log("❌ Email Error:", err.message);
   }
