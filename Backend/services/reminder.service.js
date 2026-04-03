@@ -1,6 +1,7 @@
 import Rental from "../models/rental.model.js";
 import Message from "../models/message.model.js";
 import { sendEmailReport } from "./email.service.js";
+import { calculateRent } from "../utils/rentCalculator.js";
 
 /* =========================
    Normalize date to IST (00:00)
@@ -12,9 +13,13 @@ const normalizeDate = (date) => {
 
 export const checkRentReminders = async () => {
   try {
+    console.log("🔔 Running rent reminder job...");
+
     const rentals = await Rental.find({ status: "active" }).populate(
       "customer",
     );
+
+    console.log("📦 Active rentals found:", rentals.length);
 
     if (!rentals.length) {
       console.log("No active rentals");
@@ -22,7 +27,6 @@ export const checkRentReminders = async () => {
     }
 
     const today = normalizeDate(new Date());
-
     let alertList = [];
 
     for (let rental of rentals) {
@@ -31,17 +35,11 @@ export const checkRentReminders = async () => {
       const startDate = normalizeDate(rental.rentDate);
       const expectedReturn = normalizeDate(rental.expectedReturnDate);
 
-      /* =========================
-         Days Used (corrected)
-      ========================= */
       const daysUsed = Math.max(
         1,
         Math.ceil((today - startDate) / (1000 * 60 * 60 * 24)),
       );
 
-      /* =========================
-         Days Remaining
-      ========================= */
       const daysRemaining = Math.ceil(
         (expectedReturn - today) / (1000 * 60 * 60 * 24),
       );
@@ -66,30 +64,35 @@ export const checkRentReminders = async () => {
       if (!shouldSend) continue;
 
       /* =========================
-         Prevent duplicate alerts (per day)
+         PREVENT DUPLICATE EMAIL PER DAY
       ========================= */
       const startOfDay = new Date(today);
       const endOfDay = new Date(today);
       endOfDay.setDate(endOfDay.getDate() + 1);
 
       const alreadySent = await Message.findOne({
-        rental: rental._id,
-        createdAt: {
-          $gte: startOfDay,
-          $lt: endOfDay,
-        },
+        rental: rental._id, // ⭐ IMPORTANT FIX
+        createdAt: { $gte: startOfDay, $lt: endOfDay },
       });
 
-      if (alreadySent) continue;
+      if (alreadySent) {
+        console.log("⏭ Already sent today:", rental.customer.customerName);
+        continue;
+      }
 
       /* =========================
-         Amount Calculation
+         USE REAL RENT CALCULATION
       ========================= */
-      const amount = rental.platesGiven * rental.rentPerPlate * daysUsed;
+      const amount = calculateRent(
+        rental.platesGiven,
+        rental.rentPerPlate,
+        daysUsed,
+      );
 
       const phone = rental.customer.phoneNumber.replace(/\D/g, "");
 
       alertList.push({
+        rentalId: rental._id, // ⭐ used to store message record
         name: rental.customer.customerName,
         phone,
         plates: rental.platesGiven,
@@ -100,27 +103,32 @@ export const checkRentReminders = async () => {
     }
 
     if (alertList.length === 0) {
-      console.log("No alerts today");
+      console.log("📭 No reminders to send today");
       return;
     }
 
     /* =========================
-       Send Email
+       SEND EMAIL
     ========================= */
     await sendEmailReport(alertList);
 
+    console.log("📧 Email sent to admin");
+
     /* =========================
-       Save summary
+       SAVE MESSAGE ENTRY PER RENTAL (IMPORTANT)
     ========================= */
-    await Message.create({
-      message: JSON.stringify(alertList),
-      type: "summary",
+    const messages = alertList.map((item) => ({
+      rental: item.rentalId,
+      message: `Reminder sent: ${item.status}`,
+      type: "reminder",
       method: "Email",
       status: "sent",
-    });
+    }));
 
-    console.log("✅ Email summary sent");
+    await Message.insertMany(messages);
+
+    console.log("✅ Reminder job finished successfully");
   } catch (err) {
-    console.log("❌ Error:", err.message);
+    console.log("❌ Reminder job error:", err.message);
   }
 };
