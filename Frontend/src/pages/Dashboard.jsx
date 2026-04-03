@@ -1,3 +1,4 @@
+import { calculateRent } from "../utils/calculateRent";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import {
@@ -54,7 +55,13 @@ export default function Dashboard() {
             Math.floor((today - rentDate) / (1000 * 60 * 60 * 24)) + 1,
           );
 
-          return sum + rental.platesGiven * rental.rentPerPlate * daysUsed;
+          const amount = calculateRent(
+            Number(rental.platesGiven),
+            Number(rental.rentPerPlate),
+            daysUsed,
+          );
+
+          return sum + amount;
         }, 0);
 
         setLiveMoney(totalMoney);
