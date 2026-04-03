@@ -1,184 +1,185 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { MESSAGE_API } from "../utils/constant";
-import { toast } from "sonner";
+import {
+  Mail,
+  MessageCircle,
+  CheckCircle2,
+  XCircle,
+  Clock3,
+  Search,
+} from "lucide-react";
+import { motion } from "framer-motion";
 
-export default function Messages() {
+export default function Message() {
   const [messages, setMessages] = useState([]);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const res = await axios.get(`${MESSAGE_API}/getAll`, {
+          withCredentials: true,
+        });
+
+        setMessages(res.data.messages || []);
+      } catch (err) {
+        console.error("Failed to fetch messages", err);
+      }
+    };
+
     fetchMessages();
   }, []);
 
-  const fetchMessages = async () => {
-    try {
-      const res = await axios.get(`${MESSAGE_API}/getAll`, {
-        withCredentials: true,
-      });
+  const filteredMessages = messages.filter((msg) => {
+    const matchesFilter =
+      filter === "all" ||
+      msg.status === filter ||
+      msg.method.toLowerCase() === filter;
 
-      setMessages(res.data.messages || []);
-    } catch (err) {
-      console.log(err);
-      toast.error("Failed to fetch messages");
-    }
-  };
+    const matchesSearch =
+      msg.message.toLowerCase().includes(search.toLowerCase()) ||
+      msg.customer?.name?.toLowerCase().includes(search.toLowerCase());
 
-  const deleteMessage = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this message?"))
-      return;
-
-    try {
-      const res = await axios.delete(`${MESSAGE_API}/delete/${id}`, {
-        withCredentials: true,
-      });
-
-      if (res.data.success) {
-        toast.success("Message deleted");
-        fetchMessages();
-      } else {
-        toast.error("Failed to delete message");
-      }
-    } catch (err) {
-      console.log(err);
-      toast.error("Error deleting message");
-    }
-  };
+    return matchesFilter && matchesSearch;
+  });
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">
-        📩 Admin Alerts (Email Reports)
-      </h1>
-
-      <div className="bg-white shadow rounded-xl overflow-hidden">
-        {/* ✅ Horizontal Scroll Wrapper */}
-        <div className="w-full overflow-x-auto">
-          <table className="min-w-[800px] w-full text-left">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-3">Type</th>
-                <th className="p-3">Method</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Date</th>
-                <th className="p-3">Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {messages.map((msg) => {
-                let parsedData = [];
-
-                if (msg.type === "summary" && msg.message) {
-                  try {
-                    parsedData = JSON.parse(msg.message);
-                  } catch {
-                    parsedData = [];
-                  }
-                }
-
-                return (
-                  <React.Fragment key={msg._id}>
-                    {/* MAIN ROW */}
-                    <tr className="border-b hover:bg-gray-50">
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-1 rounded text-white text-sm ${
-                            msg.type === "summary"
-                              ? "bg-purple-500"
-                              : msg.type === "overdue"
-                              ? "bg-red-500"
-                              : "bg-blue-500"
-                          }`}
-                        >
-                          {msg.type}
-                        </span>
-                      </td>
-
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-1 rounded text-white text-sm ${
-                            msg.method === "Email"
-                              ? "bg-indigo-500"
-                              : "bg-green-500"
-                          }`}
-                        >
-                          {msg.method}
-                        </span>
-                      </td>
-
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-1 rounded text-white text-sm ${
-                            msg.status === "sent"
-                              ? "bg-green-500"
-                              : "bg-red-500"
-                          }`}
-                        >
-                          {msg.status}
-                        </span>
-                      </td>
-
-                      <td className="p-3">
-                        {msg.createdAt
-                          ? new Date(msg.createdAt).toLocaleString()
-                          : "No Date"}
-                      </td>
-
-                      <td className="p-3">
-                        <button
-                          onClick={() => deleteMessage(msg._id)}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-
-                    {/* SUMMARY TABLE */}
-                    {msg.type === "summary" && parsedData.length > 0 && (
-                      <tr>
-                        <td colSpan="5" className="p-4 bg-gray-50">
-                          {/* ✅ Nested scroll for summary table */}
-                          <div className="overflow-x-auto">
-                            <table className="min-w-[700px] w-full border text-sm">
-                              <thead className="bg-gray-200">
-                                <tr>
-                                  <th className="p-2">Customer</th>
-                                  <th className="p-2">Phone</th>
-                                  <th className="p-2">Plates</th>
-                                  <th className="p-2">Days Used</th>
-                                  <th className="p-2">Status</th>
-                                  <th className="p-2">Amount</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {parsedData.map((item, index) => (
-                                  <tr key={index} className="border-b">
-                                    <td className="p-2">{item.name}</td>
-                                    <td className="p-2">{item.phone}</td>
-                                    <td className="p-2">{item.plates}</td>
-                                    <td className="p-2">{item.daysUsed}</td>
-                                    <td className="p-2">{item.status}</td>
-                                    <td className="p-2 font-semibold text-green-600">
-                                      ₹{item.amount}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-gray-800">
+            📩 Message Center
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Track reminders, overdue alerts and email summaries
+          </p>
         </div>
 
-        {messages.length === 0 && (
-          <div className="text-center p-6 text-gray-500">No messages yet</div>
+        {/* SEARCH */}
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search customer or message..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+      </div>
+
+      {/* FILTERS */}
+      <div className="flex flex-wrap gap-3">
+        {["all", "sent", "failed", "whatsapp", "email"].map((item) => (
+          <button
+            key={item}
+            onClick={() => setFilter(item)}
+            className={`px-4 py-2 rounded-xl font-medium transition ${
+              filter === item
+                ? "bg-indigo-600 text-white shadow-lg"
+                : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-100"
+            }`}
+          >
+            {item.charAt(0).toUpperCase() + item.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* MESSAGE LIST */}
+      <div className="grid gap-5">
+        {filteredMessages.length === 0 ? (
+          <div className="bg-white rounded-2xl p-10 text-center shadow-md">
+            <Clock3 className="mx-auto w-10 h-10 text-gray-400 mb-3" />
+            <p className="text-gray-500 text-lg">No messages found</p>
+          </div>
+        ) : (
+          filteredMessages.map((msg, index) => (
+            <motion.div
+              key={msg._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ scale: 1.01 }}
+              className="bg-white rounded-2xl shadow-md border border-gray-100 p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5"
+            >
+              {/* LEFT SECTION */}
+              <div className="flex items-start gap-4">
+                <div
+                  className={`p-3 rounded-2xl ${
+                    msg.method === "WhatsApp"
+                      ? "bg-green-100 text-green-600"
+                      : "bg-blue-100 text-blue-600"
+                  }`}
+                >
+                  {msg.method === "WhatsApp" ? (
+                    <MessageCircle className="w-6 h-6" />
+                  ) : (
+                    <Mail className="w-6 h-6" />
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      {msg.customer?.name || "System Notification"}
+                    </h2>
+
+                    <span
+                      className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                        msg.status === "sent"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {msg.status}
+                    </span>
+
+                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+                      {msg.type}
+                    </span>
+                  </div>
+
+                  <p className="text-gray-600 max-w-2xl leading-relaxed">
+                    {msg.message}
+                  </p>
+
+                  <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-500">
+                    <span>
+                      {msg.method === "WhatsApp"
+                        ? `📱 ${msg.phoneNumber || "No number"}`
+                        : "📧 Email"}
+                    </span>
+
+                    <span>
+                      🕒{" "}
+                      {new Date(msg.createdAt).toLocaleString("en-IN", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* RIGHT STATUS ICON */}
+              <div className="flex items-center justify-end">
+                {msg.status === "sent" ? (
+                  <div className="flex items-center gap-2 text-green-600 font-semibold">
+                    <CheckCircle2 className="w-6 h-6" />
+                    Delivered
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-red-600 font-semibold">
+                    <XCircle className="w-6 h-6" />
+                    Failed
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))
         )}
       </div>
     </div>
