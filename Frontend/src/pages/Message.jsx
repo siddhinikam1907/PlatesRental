@@ -33,7 +33,7 @@ export default function Messages() {
       const res = await axios.get(`${MESSAGE_API}/getAll`, {
         withCredentials: true,
       });
-
+      console.log(res);
       const cleaned = res.data.messages.map((msg) => ({
         _id: msg._id,
         customerName: msg.customer?.customerName || "Unknown",

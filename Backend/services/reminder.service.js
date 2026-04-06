@@ -132,6 +132,8 @@ export const checkRentReminders = async () => {
     await Message.insertMany([
       ...alertList.map((item) => ({
         rental: item.rentalId,
+        customer: item.customerId, // 🔥 ADD THIS (MOST IMPORTANT)
+        phoneNumber: item.phone, // ✅ optional but useful
         message: `Reminder sent: ${item.status}`,
         type: "reminder",
         method: "Email",
