@@ -103,6 +103,7 @@ export const checkRentReminders = async () => {
 
       alertList.push({
         rentalId: rental._id,
+        customerId: rental.customer._id,
         name: rental.customer.customerName,
         phone: rental.customer.phoneNumber.replace(/\D/g, ""),
         plates: rental.platesGiven,
