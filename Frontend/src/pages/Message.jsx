@@ -59,7 +59,7 @@ export default function Messages() {
 
     try {
       setDeletingId(id);
-      await axios.delete(`${MESSAGE_API}/${id}`, {
+      await axios.delete(`${MESSAGE_API}/delete/${id}`, {
         withCredentials: true,
       });
 
@@ -202,10 +202,6 @@ export default function Messages() {
 
                       {/* FOOTER */}
                       <div className="mt-4 flex justify-between items-center text-sm">
-                        <span className="font-semibold text-emerald-600">
-                          ₹{msg.amount}
-                        </span>
-
                         <span className="text-xs text-slate-400">
                           {new Date(msg.createdAt).toLocaleTimeString()}
                         </span>

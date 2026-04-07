@@ -7,12 +7,10 @@ import { calculateRent } from "../utils/rentCalculator.js";
    Normalize to IST date only
 ========================= */
 const getISTDateOnly = (date = new Date()) => {
-  const ist = new Date(
-    date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
-  );
-
-  ist.setHours(0, 0, 0, 0);
-  return ist;
+  const IST_OFFSET = 5.5 * 60 * 60 * 1000; // 5h 30m
+  const istTime = new Date(date.getTime() + IST_OFFSET);
+  istTime.setUTCHours(0, 0, 0, 0);
+  return istTime;
 };
 
 export const checkRentReminders = async () => {
@@ -53,14 +51,11 @@ export const checkRentReminders = async () => {
       const rentDate = getISTDateOnly(rental.rentDate);
       const returnDate = getISTDateOnly(rental.expectedReturnDate);
 
-      const daysUsed = Math.max(
-        1,
-        Math.ceil((today - rentDate) / (1000 * 60 * 60 * 24)),
-      );
+      const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-      const daysRemaining = Math.ceil(
-        (returnDate - today) / (1000 * 60 * 60 * 24),
-      );
+      const daysUsed = Math.floor((today - rentDate) / MS_PER_DAY) + 1;
+
+      const daysRemaining = Math.ceil((returnDate - today) / MS_PER_DAY);
 
       let status = null;
 

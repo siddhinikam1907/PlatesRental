@@ -2,7 +2,9 @@ import Message from "../models/message.model.js";
 
 export const getAllMessages = async (req, res) => {
   try {
-    const messages = await Message.find()
+    const messages = await Message.find({
+      type: { $ne: "daily-reminder-job" }, // ⭐ hide cron logs
+    })
       .populate("customer", "customerName phoneNumber")
       .populate("rental")
       .sort({ createdAt: -1 });

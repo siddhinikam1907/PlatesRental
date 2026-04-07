@@ -1,3 +1,4 @@
+process.env.TZ = "Asia/Kolkata";
 import dns from "dns";
 
 /* 🚨 FORCE IPV4 FOR GMAIL SMTP (RENDER FIX) */
